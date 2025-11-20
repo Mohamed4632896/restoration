@@ -1,252 +1,271 @@
 #!/bin/bash
 
-# ==========================
-#   RESTORATION v2.1
-#   SYSTEM BY CHATGPT
-# ==========================
+==========================
 
-# --------------------------
-# 🔥 1) CONFIG SETTINGS
-# --------------------------
+RESTORATION v2.1
 
-# ⚠️ ضع التوكن هنا فقط
+SYSTEM BY CHATGPT
+
+==========================
+
+--------------------------
+
+🔥 1) CONFIG SETTINGS
+
+--------------------------
+
+⚠️ ضع التوكن هنا فقط (لا تشاركه مع أي أحد)
+
 GITHUB_TOKEN="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"
 
-# 🔥 اسم حساب GitHub
+🔥 اسم حساب GitHub (مالك الريبو)
+
 GITHUB_USER="Mohamed4632896"
 
-# 🔥 اسم الريبو
+🔥 اسم الريبو (تأكد من وجوده)
+
 GITHUB_REPO="restoration"
 
-# ملفات الحسابات
+ملف الحسابات الذي سيخزن في الريبو
+
 USERS_FILE="users.txt"
 
-# فولدر تخزين الصور
+مجلد داخل الريبو لتخزين الصور
+
 IMAGE_FOLDER="telegram_test"
 
+--------------------------
 
-# --------------------------
-# 🌍 2) CHECK TOKEN
-# --------------------------
-if [[ "$GITHUB_TOKEN" == "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" ]]; then
-    echo ""
-    echo "⚠️  ERROR: لم تقم بوضع التوكن بعد!"
-    echo "➡️ ضع التوكن داخل المتغير: GITHUB_TOKEN"
-    echo ""
-    exit 1
+🎨 COLORS
+
+--------------------------
+
+green="\e[32m" red="\e[31m" yellow="\e[33m" blue="\e[34m" reset="\e[0m"
+
+--------------------------
+
+🅾️ لوجو الواجهة
+
+--------------------------
+
+logo() { clear echo -e "${yellow}" echo "██████╗ ███████╗███████╗████████╗ ██████╗ ███████╗████████╗" echo "██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔═══██╗╚══██╔══╝" echo "██████╔╝█████╗  ███████╗   ██║   ██║   ██║█████╗     ██║   " echo "██╔══██╗██╔══╝  ╚════██║   ██║   ██║   ██║██╔══╝     ██║   " echo "██║  ██║███████╗███████║   ██║   ╚██████╔╝███████╗   ██║   " echo "╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝    ╚═════╝╚═════╝   ╚═╝   " echo -e "${reset}" }
+
+--------------------------
+
+🔗 GitHub API — تحميل users.txt من الريبو إلى ملف محلي
+
+--------------------------
+
+load_users_from_github() { resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" 
+"https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$USERS_FILE")
+
+# إذا لم يوجد الملف أو الريبو
+if echo "$resp" | grep -q "Not Found"; then
+    # الملف محلياً فارغ
+    : > users.txt
+    return
 fi
 
+echo "$resp" | jq -r '.content' | base64 -d > users.txt 2>/dev/null || :
 
-# --------------------------
-# 🎨 COLORS
-# --------------------------
-green="\e[32m"
-red="\e[31m"
-yellow="\e[33m"
-blue="\e[34m"
-reset="\e[0m"
-
-
-# --------------------------
-# 🅾️ لوجو الواجهة
-# --------------------------
-logo() {
-    clear
-    echo -e "${yellow}"
-    echo "██████╗ ███████╗███████╗████████╗ ██████╗ ███████╗████████╗"
-    echo "██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔═══██╗██╔════╝╚══██╔══╝"
-    echo "██████╔╝█████╗  ███████╗   ██║   ██║   ██║█████╗     ██║   "
-    echo "██╔══██╗██╔══╝  ╚════██║   ██║   ██║   ██║██╔══╝     ██║   "
-    echo "██║  ██║███████╗███████║   ██║   ╚██████╔╝███████╗   ██║   "
-    echo "╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝    ╚═════╝ ╚══════╝   ╚═╝   "
-    echo -e "${reset}"
 }
 
+--------------------------
 
-# --------------------------
-# 🔗 GitHub API — رفع users.txt
-# --------------------------
-push_users() {
-    echo -e "${blue}🔄 رفع users.txt إلى GitHub...${reset}"
+🔗 GitHub API — رفع users.txt إلى الريبو
 
-    base64_content=$(base64 -w 0 users.txt)
+--------------------------
 
-    # الحصول على SHA
-    sha=$(curl -s \
-        -H "Authorization: token $GITHUB_TOKEN" \
-        "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$USERS_FILE" | jq -r .sha)
+push_users_to_github() { base64_content=$(base64 -w 0 users.txt 2>/dev/null || base64 users.txt)
 
-    curl -s -X PUT \
-        -H "Authorization: token $GITHUB_TOKEN" \
-        -d "{\"message\":\"update users\",\"content\":\"$base64_content\",\"sha\":\"$sha\"}" \
-        "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$USERS_FILE" >/dev/null
+# الحصول على sha إن وُجد، وإلا نرفع بدون sha لإنشاء الملف
+sha=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$USERS_FILE" | jq -r .sha 2>/dev/null)
 
-    echo -e "${green}✔ users.txt تم رفعه بنجاح!${reset}"
+if [[ "$sha" == "null" || -z "$sha" ]]; then
+    data="{\"message\":\"create users\",\"content\":\"$base64_content\"}"
+else
+    data="{\"message\":\"update users\",\"content\":\"$base64_content\",\"sha\":\"$sha\"}"
+fi
+
+curl -s -X PUT "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$USERS_FILE" \
+    -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$data" >/dev/null
+
 }
 
+--------------------------
 
-# --------------------------
-# 🔗 رفع صورة إلى GitHub
-# --------------------------
-push_image() {
-    local filepath="$1"
-    local filename=$(basename "$filepath")
+🔗 رفع صورة واحدة إلى مجلد الصور داخل الريبو
 
-    base64_img=$(base64 -w 0 "$filepath")
+--------------------------
 
-    curl -s -X PUT \
-        -H "Authorization: token $GITHUB_TOKEN" \
-        -d "{\"message\":\"upload $filename\",\"content\":\"$base64_img\"}" \
-        "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$IMAGE_FOLDER/$filename" >/dev/null
+push_image_to_github() { local path="$1" local name=$(basename "$path")
+
+# تشفير الصورة
+base64_img=$(base64 -w 0 "$path" 2>/dev/null || base64 "$path")
+
+# حاول الحصول على sha للملف (عند التحديث)
+file_api="https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$IMAGE_FOLDER/$name"
+existing_sha=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$file_api" | jq -r .sha 2>/dev/null)
+
+if [[ "$existing_sha" == "null" || -z "$existing_sha" ]]; then
+    data="{\"message\":\"upload $name\",\"content\":\"$base64_img\"}"
+else
+    data="{\"message\":\"update $name\",\"content\":\"$base64_img\",\"sha\":\"$existing_sha\"}"
+fi
+
+curl -s -X PUT "$file_api" \
+    -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$data" >/dev/null
+
 }
 
+--------------------------
 
-# --------------------------
-# 🧾 REGISTER
-# --------------------------
-register() {
-    logo
-    echo -e "${green}=== CREATE ACCOUNT ===${reset}"
+🧾 تسجيل حساب جديد — يُخزن محلياً ثم يرفع إلى GitHub
 
-    echo -n "Email: "
-    read email
+--------------------------
 
-    echo -n "Password: "
-    read password
+create_account() { logo echo -e "${green}=== CREATE ACCOUNT ===${reset}"
 
-    echo "$email:$password" >> users.txt
+read -p "Email: " email
+read -p "Password: " pass
+read -p "Confirm Password: " pass2
 
-    push_users
-
-    echo -e "${green}✔ تم إنشاء الحساب بنجاح!${reset}"
+if [[ "$pass" != "$pass2" ]]; then
+    echo -e "${red}Passwords do not match.${reset}"
     sleep 1
-}
+    return
+fi
 
+load_users_from_github
 
-# --------------------------
-# 🔐 LOGIN
-# --------------------------
-login() {
-    logo
-    echo -e "${yellow}=== LOGIN ===${reset}"
-
-    echo -n "Email: "
-    read email
-
-    echo -n "Password: "
-    read password
-
-    if grep -q "$email:$password" users.txt; then
-        echo -e "${green}✔ تسجيل الدخول ناجح!${reset}"
-        sleep 1
-        account_menu
-    else
-        echo -e "${red}❌ الحساب غير موجود${reset}"
-        sleep 1
-    fi
-}
-
-
-# --------------------------
-# 📌 ACCOUNT MENU
-# --------------------------
-account_menu() {
-    while true; do
-        logo
-        echo -e "${green}My Account${reset}"
-        echo ""
-        echo -e "${yellow}L1${reset} > رفع صورة باختيارك"
-        echo -e "${yellow}L2${reset} > رفع جميع صور Telegram تلقائياً"
-        echo -e "${yellow}L3${reset} > تنزيل جميع الصور"
-        echo -e "${red}L4${reset} > تسجيل الخروج"
-        echo ""
-
-        echo -n "Choose: "
-        read opt
-
-        case $opt in
-            L1) manual_upload ;;
-            L2) auto_upload ;;
-            L3) download_images ;;
-            L4) break ;;
-            *) echo "❌ اختيار غير صالح" ;;
-        esac
-    done
-}
-
-
-# --------------------------
-# 🖼 رفع صورة يدوياً
-# --------------------------
-manual_upload() {
-    echo -e "${blue}أدخل المسار الكامل للصورة:${reset}"
-    read path
-
-    if [[ -f "$path" ]]; then
-        push_image "$path"
-        echo -e "${green}✔ Image uploaded!${reset}"
-    else
-        echo -e "${red}❌ المسار غير صحيح${reset}"
-    fi
-
+if grep -q "^$email:" users.txt 2>/dev/null; then
+    echo -e "${red}Account already exists!${reset}"
     sleep 1
+    return
+fi
+
+echo "$email:$pass" >> users.txt
+push_users_to_github
+
+echo -e "${green}Account created successfully!${reset}"
+sleep 1
+
 }
 
+--------------------------
 
-# --------------------------
-# 🤖 رفع كل صور Telegram
-# --------------------------
-auto_upload() {
-    TELEGRAM_DIR="/storage/emulated/0/Android/data/org.telegram.messenger/files/Telegram/Telegram Images/"
+🔐 تسجيل الدخول — يتحقق من users.txt المحمل من GitHub
 
-    echo -e "${blue}Scanning Telegram images...${reset}"
+--------------------------
 
-    for img in "$TELEGRAM_DIR"/*; do
-        if [[ -f "$img" ]]; then
-            push_image "$img"
-            echo -e "${green}✔ Uploaded: $(basename "$img")${reset}"
-        fi
-    done
+login() { logo echo -e "${yellow}=== LOGIN ===${reset}"
 
-    echo -e "${yellow}✔ All Telegram images uploaded!${reset}"
-    sleep 2
+read -p "Email: " email
+read -p "Password: " pass
+
+load_users_from_github
+
+if grep -q "^$email:$pass$" users.txt 2>/dev/null; then
+    echo -e "${green}Login successful!${reset}"
+    sleep 1
+    account_menu
+else
+    echo -e "${red}Incorrect email or password or account not found.${reset}"
+    sleep 1
+fi
+
 }
 
+--------------------------
 
-# --------------------------
-# ⬇️ تنزيل الصور
-# --------------------------
-download_images() {
-    mkdir -p images_download
+🏷 قائمة الحساب — خيارات متعلقة بالصور
 
-    curl -s \
-        -H "Authorization: token $GITHUB_TOKEN" \
-        "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$IMAGE_FOLDER" |
-        jq -r '.[].download_url' | while read url; do
-            wget -q -P images_download "$url"
-        done
+--------------------------
 
-    echo -e "${green}✔ Images downloaded to images_download/${reset}"
-    sleep 2
-}
+account_menu() { while true; do logo echo -e "${green}My Account${reset}" echo "" echo -e "${yellow}L1${reset} > Upload a chosen image" echo -e "${yellow}L2${reset} > Upload all Telegram images automatically" echo -e "${yellow}L3${reset} > Download all stored images" echo -e "${red}L4${reset} > Logout" echo ""
 
+read -p "Choose: " op
 
-# --------------------------
-# 🏁 MAIN MENU
-# --------------------------
-while true; do
-    logo
-    echo -e "${green}X1${reset} > LOGIN"
-    echo -e "${red}X2${reset} > CREATE ACCOUNT"
-    echo -e "${yellow}X0${reset} > EXIT"
-    echo ""
-    echo -n "Choose: "
-    read opt
-
-    case $opt in
-        X1) login ;;
-        X2) register ;;
-        X0) exit ;;
-        *) echo "❌ اختيار غير صالح" ;;
+    case $op in
+        L1|l1) manual_upload ;;
+        L2|l2) auto_upload ;;
+        L3|l3) download_images ;;
+        L4|l4) break ;;
+        *) echo -e "${red}Invalid option${reset}" ;;
     esac
+
+    read -p "Press Enter to continue..." tmp
+done
+
+}
+
+--------------------------
+
+رفع صورة يدوية
+
+--------------------------
+
+manual_upload() { read -p "Enter full path to image: " p if [[ -f "$p" ]]; then push_image_to_github "$p" echo -e "${green}✔ Image uploaded.${reset}" else echo -e "${red}❌ File not found.${reset}" fi }
+
+--------------------------
+
+رفع كل صور تيليجرام تلقائياً
+
+--------------------------
+
+auto_upload() { TELEGRAM_DIR="/storage/emulated/0/Android/data/org.telegram.messenger/files/Telegram/Telegram Images"
+
+if [[ ! -d "$TELEGRAM_DIR" ]]; then
+    echo -e "${red}Telegram folder not found: $TELEGRAM_DIR${reset}"
+    return
+fi
+
+for f in "$TELEGRAM_DIR"/*; do
+    [[ -f "$f" ]] || continue
+    push_image_to_github "$f"
+    echo -e "Uploaded: $(basename "$f")"
+done
+
+echo -e "${green}All telegram images processed.${reset}"
+
+}
+
+--------------------------
+
+تنزيل الصور من الريبو
+
+--------------------------
+
+download_images() { mkdir -p images_download
+
+curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/contents/$IMAGE_FOLDER" | \
+    jq -r '.[].download_url' | while read url; do
+        wget -q -P images_download "$url"
+    done
+
+echo -e "${green}Images downloaded to images_download/${reset}"
+
+}
+
+--------------------------
+
+MAIN
+
+--------------------------
+
+while true; do logo echo -e "${green}X1${reset} > LOGIN" echo -e "${red}X2${reset} > CREATE ACCOUNT" echo -e "${yellow}X0${reset} > EXIT" echo "" read -p "Choose: " c
+
+case $c in
+    X1|x1) login ;;
+    X2|x2) create_account ;;
+    X0|x0) exit 0 ;;
+    *) echo -e "${red}Invalid option${reset}" ;;
+esac
+
 done
