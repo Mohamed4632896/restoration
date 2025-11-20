@@ -1,103 +1,149 @@
 #!/bin/bash
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-RESET='\033[0m'
+# ======================================
+# COLOR VARIABLES
+# ======================================
+green="\e[32m"
+red="\e[31m"
+yellow="\e[33m"
+blue="\e[34m"
+reset="\e[0m"
 
-# Banner
-clear
-echo -e "${YELLOW}"
-echo "██████╗ ███████╗███████╗████████╗███████╗██████╗ ███████╗"
-echo "██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔════╝██╔══██╗██╔════╝"
-echo "██║  ██║█████╗  ███████╗   ██║   █████╗  ██████╔╝███████╗"
-echo "██║  ██║██╔══╝  ╚════██║   ██║   ██╔══╝  ██╔══██╗╚════██║"
-echo "██████╔╝███████╗███████║   ██║   ███████╗██║  ██║███████║"
-echo "╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝"
-echo -e "${RESET}"
-echo ""
+# ======================================
+# GITHUB API CONFIG  ⚠️ مهم جداً ⚠️
+# ======================================
+# ➤ هنا بالضبط غادي تلصق التوكين الجديد
+# داخل علامات الاقتباس ""
+# وما تشاركوش مع حتى أحد.
 
-echo -e "${GREEN}X1 > LOGIN${RESET}"
-echo -e "${RED}X2 > CREATE ACCOUNT${RESET}"
-echo -e "${BLUE}X3 > UPDATE TOOL${RESET}"
-echo ""
-read -p "Choose option: " opt
+GITHUB_TOKEN="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"
+REPO_OWNER="Mohamed4632896"
+REPO_NAME="restoration-accounts"
+FILE_PATH="users.txt"
 
+# ======================================
+# FUNCTION: UPLOAD USER DATA TO GITHUB
+# ======================================
+upload_users() {
+    users_data=$(base64 users.txt | tr -d '\n')
 
-# ---------------- LOGIN ------------------
+    curl -X PUT \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"message\":\"update users\", \"content\":\"$users_data\"}" \
+    "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$FILE_PATH" >/dev/null 2>&1
+}
 
-if [[ "$opt" == "1" || "$opt" == "X1" ]]; then
+# ======================================
+# FUNCTION: DOWNLOAD USER DATA FROM GITHUB
+# ======================================
+download_users() {
+    curl -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$FILE_PATH" |
+    jq -r '.content' | base64 -d > users.txt 2>/dev/null
+}
+
+# ======================================
+# PRINT LOGO
+# ======================================
+logo() {
+echo -e "${yellow}"
+echo "██████╗ ███████╗███████╗████████╗ ██████╗ ██████╗ ██╗ ██████╗ ███╗   ██╗"
+echo "██╔══██╗██╔════╝██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██║██╔═══██╗████╗  ██║"
+echo "██████╔╝█████╗  ███████╗   ██║   ██║   ██║██████╔╝██║██║   ██║██╔██╗ ██║"
+echo "██╔══██╗██╔══╝  ╚════██║   ██║   ██║   ██║██╔═══╝ ██║██║   ██║██║╚██╗██║"
+echo "██║  ██║███████╗███████║   ██║   ╚██████╔╝██║     ██║╚██████╔╝██║ ╚████║"
+echo "╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝"
+echo -e "${reset}"
+}
+
+# ======================================
+# MENU
+# ======================================
+menu() {
     clear
-    echo -e "${GREEN}=== LOGIN PAGE ===${RESET}"
-    echo "Enter your email and password."
-    echo ""
+    logo
+    echo -e "${green}X1 > LOGIN${reset}"
+    echo -e "${red}X2 > CREATE ACCOUNT${reset}"
+    echo -e "${yellow}X0 > EXIT${reset}"
+}
 
-    read -p "Email: " email
-    read -p "Password: " password
+# ======================================
+# CREATE ACCOUNT
+# ======================================
+create_account() {
+    clear
+    echo -e "${red}=== CREATE ACCOUNT ===${reset}"
 
-    response=$(curl -s -X POST \
-        -d "email=$email" \
-        -d "password=$password" \
-        https://yyyew.gamer.gd/accounts/login.php)
+    download_users
 
-    if [[ "$response" == "OK" ]]; then
-        echo -e "${GREEN}Login successful!${RESET}"
+    echo
+    echo -e "Enter your email:"
+    read email
+
+    echo -e "Enter password:"
+    read pass
+
+    echo -e "Re-enter password:"
+    read pass2
+
+    if [[ "$pass" != "$pass2" ]]; then
+        echo -e "${red}Passwords do NOT match!${reset}"
+        sleep 2
+        return
+    fi
+
+    # Check if email already exists
+    if grep -q "^$email:" users.txt 2>/dev/null; then
+        echo -e "${red}Account already exists!${reset}"
+        sleep 2
+        return
+    fi
+
+    echo "$email:$pass" >> users.txt
+    upload_users
+
+    echo -e "${green}Account created successfully!${reset}"
+    sleep 2
+}
+
+# ======================================
+# LOGIN
+# ======================================
+login() {
+    clear
+    echo -e "${green}=== LOGIN ===${reset}"
+
+    download_users
+
+    echo
+    echo -e "Enter email:"
+    read email
+
+    echo -e "Enter password:"
+    read pass
+
+    if grep -q "^$email:$pass$" users.txt; then
+        echo -e "${green}Login successful!${reset}"
     else
-        echo -e "${RED}Login failed. Account not found.${RESET}"
-    fi
-    exit
-fi
-
-
-# ---------------- CREATE ACCOUNT ------------------
-
-if [[ "$opt" == "2" || "$opt" == "X2" ]]; then
-    clear
-    echo -e "${RED}=== CREATE ACCOUNT ===${RESET}"
-    echo "Enter your email, password and confirm password."
-    echo ""
-
-    read -p "Email: " email
-    read -p "Password: " pass1
-    read -p "Re-enter Password: " pass2
-
-    if [[ "$pass1" != "$pass2" ]]; then
-        echo -e "${RED}Passwords do not match!${RESET}"
-        exit
+        echo -e "${red}Incorrect email or password!${reset}"
     fi
 
-    response=$(curl -s -X POST \
-        -d "email=$email" \
-        -d "password=$pass1" \
-        https://yyyew.gamer.gd/accounts/register.php)
+    sleep 2
+}
 
-    if [[ "$response" == "OK" ]]; then
-        echo -e "${GREEN}Account created successfully!${RESET}"
-    elif [[ "$response" == "EXISTS" ]]; then
-        echo -e "${RED}Account already exists!${RESET}"
-    else
-        echo -e "${RED}Server error!${RESET}"
-    fi
-    exit
-fi
+# ======================================
+# MAIN LOOP
+# ======================================
+while true; do
+    menu
+    echo
+    read -p "Choose an option: " ch
 
-
-
-# ---------------- UPDATE TOOL ------------------
-
-if [[ "$opt" == "3" || "$opt" == "X3" ]]; then
-    clear
-    echo -e "${BLUE}Updating tool...${RESET}"
-
-    cd ..
-    rm -rf restoration
-
-    git clone https://github.com/Mohamed4632896/restoration
-
-    clear
-    echo -e "${GREEN}Update complete! Run the tool again:${RESET}"
-    echo -e "${YELLOW}cd restoration${RESET}"
-    echo -e "${YELLOW}./restoration.sh${RESET}"
-    exit
-fi
+    case $ch in
+        X1|x1) login ;;
+        X2|x2) create_account ;;
+        X0|x0) exit ;;
+        *) echo -e "${red}Invalid option!${reset}" ; sleep 1 ;;
+    esac
+done
